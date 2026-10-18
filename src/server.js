@@ -7,11 +7,18 @@ import { pathToFileURL } from 'node:url';
 const RELAY_TIMEOUT_MS = 25_000;
 
 function requireHttpsUrl(value, label, expectedPath) {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new Error(
+      `${label} is missing. Set it in the Telegram bot Render service environment. ` +
+      `For TaxFlow, use https://<your-taxflow-backend-host>/api/v1/telegram/webhook.`
+    );
+  }
+
   let url;
   try {
-    url = new URL(value);
+    url = new URL(value.trim());
   } catch {
-    throw new Error(`${label} must be a valid HTTPS URL.`);
+    throw new Error(`${label} is invalid. Set a complete HTTPS URL in the Telegram bot Render service environment.`);
   }
 
   if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash) {

@@ -61,7 +61,13 @@ test('configuration requires a destination, HTTPS, and webhook secret', () => {
     TELEGRAM_BOT_TOKEN: 'token',
     TELEGRAM_WEBHOOK_SECRET: config.webhookSecret,
     RENDER_EXTERNAL_URL: 'https://telegram.example.com',
-  }), /TAXFLOW_TELEGRAM_WEBHOOK_URL must be a valid HTTPS URL/);
+  }), /TAXFLOW_TELEGRAM_WEBHOOK_URL is missing.*Render service environment.*api\/v1\/telegram\/webhook/);
+  assert.throws(() => loadConfig({
+    TELEGRAM_BOT_TOKEN: 'token',
+    TELEGRAM_WEBHOOK_SECRET: config.webhookSecret,
+    TAXFLOW_TELEGRAM_WEBHOOK_URL: 'taxflow.example.com/api/v1/telegram/webhook',
+    RENDER_EXTERNAL_URL: 'https://telegram.example.com',
+  }), /TAXFLOW_TELEGRAM_WEBHOOK_URL is invalid.*complete HTTPS URL/);
   assert.throws(() => loadConfig({
     TELEGRAM_BOT_TOKEN: 'token',
     TELEGRAM_WEBHOOK_SECRET: 'short',

@@ -28,14 +28,14 @@ npm install
 npm start
 ```
 
-The relay requires `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `TAXFLOW_TELEGRAM_WEBHOOK_URL`, and a public HTTPS URL (`PUBLIC_URL` locally or Render's `RENDER_EXTERNAL_URL`). Startup fails with a clear error if configuration is incomplete. `TAXFLOW_TELEGRAM_WEBHOOK_URL` must point to the backend's `/api/v1/telegram/webhook` endpoint.
+The relay requires `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `TAXFLOW_TELEGRAM_WEBHOOK_URL`, and a public HTTPS URL (`PUBLIC_URL` locally or Render's `RENDER_EXTERNAL_URL`). In the Telegram bot Render service's **Environment** settings, set `TAXFLOW_TELEGRAM_WEBHOOK_URL` to the full URL `https://<your-taxflow-backend-host>/api/v1/telegram/webhook`; do not enter only the backend's hostname or dashboard URL. Startup fails with a specific setup error if this value is missing or malformed.
 
 ## 3. Deploy to Render
 
 1. Create a new GitHub repository.
 2. From this folder, run the Git commands shown below and push the repository.
 3. In Render, choose **New + → Blueprint** and select the repository. Render will read `render.yaml`.
-4. Set `TELEGRAM_BOT_TOKEN` and `TAXFLOW_TELEGRAM_WEBHOOK_URL` (`https://<taxflow-backend>.onrender.com/api/v1/telegram/webhook`).
+4. Set `TELEGRAM_BOT_TOKEN` and `TAXFLOW_TELEGRAM_WEBHOOK_URL` (`https://<your-taxflow-backend-host>/api/v1/telegram/webhook`) in the Telegram bot service's **Environment** page. The TaxFlow host must be the public URL of the deployed TaxFlow backend, not this Telegram bot service's URL.
 5. Render generates `TELEGRAM_WEBHOOK_SECRET`. Copy that exact value to the TaxFlow backend's `TELEGRAM_WEBHOOK_SECRET` environment variable. This shared secret authenticates the relay request; do not put it in a URL or logs.
 6. Deploy. Render supplies `RENDER_EXTERNAL_URL`; this service registers itself as the Telegram webhook owner.
 7. On the TaxFlow backend, set `TELEGRAM_WEBHOOK_AUTO_CONFIGURE=false` and `TELEGRAM_WEBHOOK_RELAY_URL` to this service's `/telegram/webhook` URL. Do not let the TaxFlow backend overwrite the Telegram webhook.
@@ -63,6 +63,7 @@ Replace the remote URL before running the last command. If Git says a remote alr
 
 - Do not configure a second webhook owner for this bot. Only this service should call `setWebhook`.
 - If TaxFlow is unavailable or returns a non-2xx response, this service returns HTTP 503 to Telegram. Check both Render services' logs and Telegram webhook diagnostics; do not treat a webhook receipt as successful until TaxFlow acknowledges it.
+- If startup reports `TAXFLOW_TELEGRAM_WEBHOOK_URL is missing`, add that variable to the Telegram bot service's Render **Environment** settings, save it, and redeploy. Confirm the value ends with `/api/v1/telegram/webhook`.
 - Webhook requests require Telegram's secret-token header. Relay requests use the same secret over HTTPS.
 - Keep financial, user, and third-party API credentials in Render environment variables, never in source code.
 

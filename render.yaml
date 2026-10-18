@@ -3,7 +3,7 @@ services:
     name: telegram-bot
     runtime: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /health
     envVars:
@@ -11,4 +11,5 @@ services:
         sync: false
       - key: TELEGRAM_WEBHOOK_SECRET
         generateValue: true
-
+      - key: TAXFLOW_TELEGRAM_WEBHOOK_URL
+        sync: false

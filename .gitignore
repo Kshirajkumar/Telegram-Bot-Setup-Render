@@ -11,3 +11,8 @@ coverage/
 dist/
 .render/
 
+# Separate repositories — do not push into this repo
+../services/backend/
+../apps/desktop/
+../Taxflow.AI Website/
+

@@ -8,7 +8,7 @@ It includes:
 - automatic webhook registration to this service on startup
 - `/start`, `/help`, and `/ping` commands
 - authenticated, synchronous forwarding of text messages to TaxFlow
-- forwarding of Telegram media update metadata to TaxFlow so it can send a client-specific portal invitation; media bytes are never downloaded or stored
+- forwarding of Telegram media update metadata to TaxFlow so it can send an enrollment invitation or the regular portal sign-in link, depending on the client's portal-account status; media bytes are never downloaded or stored
 - no file download or client data storage in this relay service
 - no secrets committed to the repository
 
@@ -41,7 +41,7 @@ The relay requires `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `TAXFLOW_TEL
 6. Deploy. Render supplies `RENDER_EXTERNAL_URL`; this service registers itself as the Telegram webhook owner.
 7. On the TaxFlow backend, set `TELEGRAM_WEBHOOK_AUTO_CONFIGURE=false` and `TELEGRAM_WEBHOOK_RELAY_URL` to this service's `/telegram/webhook` URL. Do not let the TaxFlow backend overwrite the Telegram webhook.
 8. Deploy both services and confirm this service's `/health` is healthy, TaxFlow's Telegram diagnostics show the relay URL, and Telegram has no recent webhook error.
-9. Link a private Telegram chat to a TaxFlow client and test text messaging. If a linked client sends a photo, document, audio, video, sticker, or other supported media, the relay forwards only Telegram's update metadata to TaxFlow. TaxFlow replies with a brief privacy warning and the client's private portal invitation. This relay never downloads or stores the media bytes.
+9. Link a private Telegram chat to a TaxFlow client and test text messaging. If a linked client sends a photo, document, audio, video, sticker, or other supported media, the relay forwards only Telegram's update metadata to TaxFlow. TaxFlow replies with a brief privacy warning and a portal link: an unregistered client receives the private enrollment invitation, while a client with an active portal account receives the regular portal sign-in URL. This relay never downloads or stores the media bytes.
 
 The service must be a **Web Service**, not a static site or background worker. Free Render services can sleep after inactivity; a delayed request may exceed the relay timeout and be retried by Telegram. In production, use a plan that meets your latency and availability needs. Telegram is a text and client-connection channel only. Client documents must be uploaded through the secure portal and stored using the portal's private Supabase Storage flow.
 
@@ -64,7 +64,7 @@ Replace the remote URL before running the last command. If Git says a remote alr
 
 - Do not configure a second webhook owner for this bot. Only this service should call `setWebhook`.
 - If TaxFlow is unavailable or returns a non-2xx response, this service returns HTTP 503 to Telegram. Check both Render services' logs and Telegram webhook diagnostics; do not treat a webhook receipt as successful until TaxFlow acknowledges it.
-- Media updates are synchronously forwarded to TaxFlow so linked clients receive a privacy warning and their secure portal invitation. If TaxFlow is unavailable, the relay returns HTTP 503 so Telegram can retry; no media bytes are downloaded or stored by either service.
+- Media updates are synchronously forwarded to TaxFlow so linked clients receive a privacy warning and the correct portal link for their account state. If TaxFlow is unavailable, the relay returns HTTP 503 so Telegram can retry; no media bytes are downloaded or stored by either service.
 - If startup reports `TAXFLOW_TELEGRAM_WEBHOOK_URL is missing`, add that variable to the Telegram bot service's Render **Environment** settings, save it, and redeploy. Confirm the value ends with `/api/v1/telegram/webhook`.
 - Webhook requests require Telegram's secret-token header. Relay requests use the same secret over HTTPS.
 - Keep financial, user, and third-party API credentials in Render environment variables, never in source code.

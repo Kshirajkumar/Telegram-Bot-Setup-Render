@@ -95,7 +95,7 @@ test('text messages are relayed with the shared webhook secret', async () => {
   assert.deepEqual(JSON.parse(calls[0].options.body), update);
 });
 
-test('media messages are acknowledged without forwarding file metadata or captions', async () => {
+test('media updates are relayed to TaxFlow for a safe portal response without file downloads', async () => {
   const media = [
     { photo: [{ file_id: 'photo-1' }] },
     { document: { file_id: 'document-1', file_name: 'private.pdf' } },
@@ -111,23 +111,31 @@ test('media messages are acknowledged without forwarding file metadata or captio
 
   for (const [index, payload] of media.entries()) {
     calls.length = 0;
-    const response = await sendWebhook({
+    const update = {
       update_id: 78 + index,
       message: { message_id: index + 1, chat: { id: 9 }, ...payload },
+    };
+    const response = await sendWebhook({
+      ...update,
     });
     assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), { success: true, ignored: true });
-    assert.equal(calls.length, 0, 'media updates must not be forwarded or trigger bot replies');
+    assert.deepEqual(await response.json(), { success: true });
+    assert.equal(calls.length, 1, 'the original update should be forwarded exactly once');
+    assert.equal(calls[0].url, config.taxflowWebhookUrl);
+    assert.deepEqual(JSON.parse(calls[0].options.body), update);
+    assert.equal(calls.some((call) => /getFile|sendPhoto|sendDocument/.test(call.url)), false);
   }
 
   calls.length = 0;
-  const editedResponse = await sendWebhook({
+  const editedUpdate = {
     update_id: 90,
     edited_message: { chat: { id: 9 }, photo: [{ file_id: 'edited-photo' }], caption: 'edited caption' },
-  });
+  };
+  const editedResponse = await sendWebhook(editedUpdate);
   assert.equal(editedResponse.status, 200);
-  assert.deepEqual(await editedResponse.json(), { success: true, ignored: true });
-  assert.equal(calls.length, 0);
+  assert.deepEqual(await editedResponse.json(), { success: true });
+  assert.equal(calls.length, 1);
+  assert.deepEqual(JSON.parse(calls[0].options.body), editedUpdate);
 });
 
 test('webhook registration keeps the relay as the sole Telegram ingress', async () => {

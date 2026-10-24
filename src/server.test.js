@@ -82,22 +82,52 @@ test('configuration requires a destination, HTTPS, and webhook secret', () => {
   }), /HTTPS URL/);
 });
 
-test('valid document updates are relayed with the shared webhook secret', async () => {
+test('text messages are relayed with the shared webhook secret', async () => {
   calls.length = 0;
   relayStatus = 200;
   relayPayload = { ok: true };
-  const update = { update_id: 71, message: { message_id: 5, chat: { id: 9 }, document: { file_id: 'file-1' } } };
+  const update = { update_id: 71, message: { message_id: 5, chat: { id: 9 }, text: 'Hello' } };
   const response = await sendWebhook(update);
   assert.equal(response.status, 200);
   assert.equal(calls.length, 1);
   assert.equal(calls[0].url, config.taxflowWebhookUrl);
   assert.equal(calls[0].options.headers['x-telegram-bot-api-secret-token'], config.webhookSecret);
   assert.deepEqual(JSON.parse(calls[0].options.body), update);
+});
 
-  const photoUpdate = { update_id: 78, message: { message_id: 6, chat: { id: 9 }, photo: [{ file_id: 'photo-1' }] } };
-  const photoResponse = await sendWebhook(photoUpdate);
-  assert.equal(photoResponse.status, 200);
-  assert.deepEqual(JSON.parse(calls[1].options.body), photoUpdate);
+test('media messages are acknowledged without forwarding file metadata or captions', async () => {
+  const media = [
+    { photo: [{ file_id: 'photo-1' }] },
+    { document: { file_id: 'document-1', file_name: 'private.pdf' } },
+    { video: { file_id: 'video-1' } },
+    { animation: { file_id: 'animation-1' } },
+    { video_note: { file_id: 'video-note-1' } },
+    { audio: { file_id: 'audio-1' } },
+    { voice: { file_id: 'voice-1' } },
+    { sticker: { file_id: 'sticker-1' } },
+    { paid_media: [{ type: 'photo', media: { file_id: 'paid-photo-1' } }] },
+    { document: { file_id: 'caption-command' }, caption: '/start private-link-code' },
+  ];
+
+  for (const [index, payload] of media.entries()) {
+    calls.length = 0;
+    const response = await sendWebhook({
+      update_id: 78 + index,
+      message: { message_id: index + 1, chat: { id: 9 }, ...payload },
+    });
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { success: true, ignored: true });
+    assert.equal(calls.length, 0, 'media updates must not be forwarded or trigger bot replies');
+  }
+
+  calls.length = 0;
+  const editedResponse = await sendWebhook({
+    update_id: 90,
+    edited_message: { chat: { id: 9 }, photo: [{ file_id: 'edited-photo' }], caption: 'edited caption' },
+  });
+  assert.equal(editedResponse.status, 200);
+  assert.deepEqual(await editedResponse.json(), { success: true, ignored: true });
+  assert.equal(calls.length, 0);
 });
 
 test('webhook registration keeps the relay as the sole Telegram ingress', async () => {
@@ -134,7 +164,7 @@ test('invalid secrets are rejected without forwarding', async () => {
 
 test('TaxFlow failures return a retryable response to Telegram', async () => {
   relayStatus = 503;
-  const response = await sendWebhook({ update_id: 73, message: { chat: { id: 9 }, photo: [{ file_id: 'photo-1' }] } });
+  const response = await sendWebhook({ update_id: 73, message: { chat: { id: 9 }, text: 'hello' } });
   assert.equal(response.status, 503);
   relayStatus = 200;
 });

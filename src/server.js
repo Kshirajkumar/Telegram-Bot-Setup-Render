@@ -60,6 +60,23 @@ function secretsMatch(expected, provided) {
   return expectedBuffer.length === providedBuffer.length && crypto.timingSafeEqual(expectedBuffer, providedBuffer);
 }
 
+function isMediaUpdate(update) {
+  const mediaFields = [
+    'photo',
+    'document',
+    'video',
+    'animation',
+    'video_note',
+    'audio',
+    'voice',
+    'sticker',
+    'paid_media',
+  ];
+  return [update.message, update.edited_message]
+    .filter((message) => message && typeof message === 'object')
+    .some((message) => mediaFields.some((field) => message[field] != null));
+}
+
 export function createTelegramBot({
   config = loadConfig(),
   fetchImpl = globalThis.fetch,
@@ -141,6 +158,10 @@ export function createTelegramBot({
     const update = req.body;
     if (!update || typeof update !== 'object' || Array.isArray(update) || !Number.isInteger(update.update_id)) {
       return res.status(400).json({ success: false, error: 'Invalid Telegram update.' });
+    }
+
+    if (isMediaUpdate(update)) {
+      return res.status(200).json({ success: true, ignored: true });
     }
 
     const message = update.message;

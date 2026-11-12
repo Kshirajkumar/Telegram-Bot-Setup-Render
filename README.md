@@ -25,8 +25,8 @@ Install Node.js 20 or newer, then run:
 ```powershell
 Copy-Item .env.example .env
 # Set the required values described below in .env
-npm install
-npm start
+yarn install --frozen-lockfile
+yarn start
 ```
 
 The relay requires `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `TAXFLOW_TELEGRAM_WEBHOOK_URL`, and a public HTTPS URL (`PUBLIC_URL` locally or Render's `RENDER_EXTERNAL_URL`). In the Telegram bot Render service's **Environment** settings, set `TAXFLOW_TELEGRAM_WEBHOOK_URL` to the full URL `https://<your-taxflow-backend-host>/api/v1/telegram/webhook`; do not enter only the backend's hostname or dashboard URL. Startup fails with a specific setup error if this value is missing or malformed.

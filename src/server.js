@@ -143,7 +143,10 @@ export function createTelegramBot({
       return res.status(400).json({ success: false, error: 'Invalid Telegram update.' });
     }
 
-    const message = update.message;
+    const message = update.message || update.edited_message;
+    if (message && typeof message.text !== 'string') {
+      return res.status(200).json({ success: true, ignored: true, reason: 'text_messages_only' });
+    }
     const text = typeof message?.text === 'string' ? message.text.trim() : '';
     const command = text.match(/^\/(start|help|ping)(?:@\w+)?(?:\s+(.*))?$/i);
 
